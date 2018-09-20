@@ -1,0 +1,43 @@
+// webpack v4
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+module.exports = {
+    entry: { main: './src/index.js' },
+    output: {
+        path: path.resolve(__dirname, 'dist'),
+        filename: 'bundle.js'
+    },
+    devtool: 'inline-source-map',
+    devServer: {
+        contentBase: './dist',
+        open: true
+    },
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader'
+                }
+            },
+            {
+                test: /\.scss$/,
+                use: [
+                    'style-loader',
+                    'css-loader',
+                    'sass-loader'
+                ]
+            }
+        ]
+    },
+    plugins: [
+        new HtmlWebpackPlugin({
+            inject: false,
+            hash: true,
+            template: './src/index.html',
+            filename: 'index.html'
+        })
+    ]
+};
