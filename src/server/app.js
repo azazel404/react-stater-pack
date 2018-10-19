@@ -3,48 +3,65 @@ const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const passport = require('passport');
 const helmet = require('helmet');
 const app = express();
 
 //plugins
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:8080', 'http://127.0.0.1:8080'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'url-access', 'Identity'],
+}));
 app.use(helmet());
 app.use('/uploads', express.static('uploads'));
 
 
 //mongodb
-const db = require('./config/database');
+const db = require('./config/database').mongoURI;
 // Connect to MongoDB
 mongoose
-    .connect(db.url)
+    .connect(db)
     .then(() => console.log('MongoDB Connected'))
     .catch(err => console.log(err));
 
-//development 
-if(app.get('env') === 'development'){
-    app.use(morgan('tiny'));
-    console.log('morgan enabled')
-}
+
+// Passport Config
+require('./config/passport')(passport);
+// // Passport middleware
+app.use(passport.initialize());
 
 //routes
 require('./routes/api')(app);
 
 
 //cors
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header(
-        "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type , Accept , Authorization"
-    );
-    if (req.method === 'OPTIONS') {
-        res.header('Access-Controle-Allow-Methods', 'PUT,POST,PATCH,DELETE,GET');
-        return res.status(200).json({});
-    }
-})
+// app.use((req, res, next) => {
+//     res.header('Access-Control-Allow-Origin', '*');
+//     res.header(
+//         "Access-Control-Allow-Headers",
+//         "Origin, X-Requested-With, Content-Type , Accept , Authorization"
+//     );
+//     if (req.method === 'OPTIONS') {
+//         res.header('Access-Controle-Allow-Methods', 'PUT,POST,PATCH,DELETE,GET');
+//         return res.status(200).json({});
+//     }
+// })
 
+// Server static assets if in production
+if (process.env.NODE_ENV === 'production') {
+    // Set static folder
+    app.use(express.static('client/build'));
+
+    app.get('*', (req, res) => {
+        res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
+    });
+} else if (app.get('env') === 'development') {
+    app.use(morgan('tiny'));
+    console.log('morgan enabled')
+}
 
 //error handling page / middleware
 app.use((req, res, next) => {
